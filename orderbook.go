@@ -130,14 +130,16 @@ func (ob *OrderBook) LowestAsk() (*Order, error) {
 
 func (ob *OrderBook) Append(order *Order) error {
 	if order.Side == BUY {
-		return ob.AddBuy(order)
+		ob.AddBuy(order)
+		return nil
 	}
 	if order.Side == SELL {
-		return ob.AddSell(order)
+		ob.AddSell(order)
+		return nil
 	}
 	return errors.New("unsupported order type")
 }
-func (ob *OrderBook) AddBuy(order *Order) error {
+func (ob *OrderBook) AddBuy(order *Order) {
 	ob.Lock()
 	defer ob.Unlock()
 	n := len(ob.BuyOrders)
@@ -154,16 +156,14 @@ func (ob *OrderBook) AddBuy(order *Order) error {
 	}
 	if appendToBook {
 		ob.BuyOrders = append(ob.BuyOrders, order)
-		return nil
 	}
 
 	copy(ob.BuyOrders[i+1:], ob.BuyOrders[i:])
 	ob.BuyOrders[i] = order
-	return nil
 }
 
 // Add a sell order to the order ob
-func (ob *OrderBook) AddSell(order *Order) error {
+func (ob *OrderBook) AddSell(order *Order) {
 	n := len(ob.SellOrders)
 	var i int
 	for i := n - 1; i >= 0; i-- {
@@ -178,7 +178,6 @@ func (ob *OrderBook) AddSell(order *Order) error {
 		copy(ob.SellOrders[i+1:], ob.SellOrders[i:])
 		ob.SellOrders[i] = order
 	}
-	return nil
 }
 
 func (ob *OrderBook) RemoveBuy(index int) {
