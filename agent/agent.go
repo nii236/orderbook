@@ -34,7 +34,7 @@ func (a *LimitAgent) Start(ctx context.Context, oType orderbook.OrderType) error
 		case <-t.C:
 			if oType == orderbook.BUY {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				amount := uint64(rand.Intn(50))
+				amount := uint64(rand.Intn(10)) + 1
 				buyOrder := &orderbook.Order{
 					Amount: amount,
 					Price:  100,
@@ -44,22 +44,30 @@ func (a *LimitAgent) Start(ctx context.Context, oType orderbook.OrderType) error
 				// fmt.Println("Agent buying", amount)
 				lowestAsk, err := a.Orderbook.LowestAsk()
 				if errors.Is(err, orderbook.ErrNoOrder) {
-					a.Orderbook.Process(buyOrder)
+					_, err = a.Orderbook.Process(buyOrder)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
 					// fmt.Printf("successful trades: %+v\n", trades)
 					continue
 				} else if err != nil {
 					fmt.Println(err)
 					continue
 				}
+				buyOrder.Price = lowestAsk.Price + 5 - uint64(rand.Intn(10))
+				// fmt.Println("lowestAsk.Price", lowestAsk.Price)
 
-				buyOrder.Price = lowestAsk.Price - uint64(rand.Intn(10))
-
-				a.Orderbook.Process(buyOrder)
+				_, err = a.Orderbook.Process(buyOrder)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
 				// fmt.Printf("successful trades: %+v\n", trades)
 			}
 			if oType == orderbook.SELL {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				amount := uint64(rand.Intn(50))
+				amount := uint64(rand.Intn(10)) + 1
 				sellOrder := &orderbook.Order{
 					Amount: amount,
 					Price:  100,
@@ -70,7 +78,11 @@ func (a *LimitAgent) Start(ctx context.Context, oType orderbook.OrderType) error
 
 				highestBid, err := a.Orderbook.HighestBid()
 				if errors.Is(err, orderbook.ErrNoOrder) {
-					a.Orderbook.Process(sellOrder)
+					_, err = a.Orderbook.Process(sellOrder)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
 					// fmt.Printf("successful trades: %+v\n", trades)
 					continue
 				} else if err != nil {
@@ -78,9 +90,13 @@ func (a *LimitAgent) Start(ctx context.Context, oType orderbook.OrderType) error
 					continue
 				}
 
-				sellOrder.Price = highestBid.Price + uint64(rand.Intn(10))
-
-				a.Orderbook.Process(sellOrder)
+				sellOrder.Price = highestBid.Price - 5 + uint64(rand.Intn(10))
+				// fmt.Println("highestBid.Price", highestBid.Price)
+				_, err = a.Orderbook.Process(sellOrder)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
 				// fmt.Printf("successful trades: %+v\n", trades)
 
 			}

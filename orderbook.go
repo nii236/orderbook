@@ -144,46 +144,111 @@ func (ob *OrderBook) AddBuy(order *Order) {
 	defer ob.Unlock()
 	n := len(ob.BuyOrders)
 	appendToBook := false
-	var i int
-	for i := n - 1; i >= 0; i-- {
-		buyOrder := ob.BuyOrders[i]
-		if buyOrder.Price < order.Price {
+
+	// Find where to insert the new buy order
+	if n == 0 {
+		ob.BuyOrders = append(ob.BuyOrders, order)
+		return
+	}
+	if n == 1 {
+		if order.Price < ob.BuyOrders[0].Price {
+			ob.BuyOrders = append(ob.BuyOrders, order)
+			return
+		}
+		ob.BuyOrders = append([]*Order{order}, ob.BuyOrders...)
+
+		return
+	}
+	neighbour := 0
+	for i := 0; i < n; i++ {
+		neighbour = i
+		currBuyOrder := ob.BuyOrders[i]
+		if currBuyOrder.Price < order.Price {
 			break
 		}
 	}
-	if n == 0 || i == n-1 {
+	if neighbour == n-1 {
 		appendToBook = true
 	}
 	if appendToBook {
 		ob.BuyOrders = append(ob.BuyOrders, order)
+		return
 	}
 
-	copy(ob.BuyOrders[i+1:], ob.BuyOrders[i:])
-	ob.BuyOrders[i] = order
+	ob.BuyOrders = append(ob.BuyOrders, &Order{})
+	copy(ob.BuyOrders[neighbour+1:], ob.BuyOrders[neighbour:])
+	ob.BuyOrders[neighbour] = order
 }
 
 // Add a sell order to the order ob
 func (ob *OrderBook) AddSell(order *Order) {
+	ob.Lock()
+	defer ob.Unlock()
 	n := len(ob.SellOrders)
-	var i int
-	for i := n - 1; i >= 0; i-- {
-		sellOrder := ob.SellOrders[i]
-		if sellOrder.Price > order.Price {
+	appendToBook := false
+
+	// Find where to insert the new Sell order
+	if n == 0 {
+		ob.SellOrders = append(ob.SellOrders, order)
+		return
+	}
+	if n == 1 {
+		if order.Price < ob.SellOrders[0].Price {
+			ob.SellOrders = append(ob.SellOrders, order)
+			return
+		}
+		ob.SellOrders = append([]*Order{order}, ob.SellOrders...)
+
+		return
+	}
+	neighbour := 0
+	for i := 0; i < n; i++ {
+		neighbour = i
+		currSellOrder := ob.SellOrders[i]
+		if currSellOrder.Price > order.Price {
 			break
 		}
 	}
-	if n == 0 || i == n-1 {
-		ob.SellOrders = append(ob.SellOrders, order)
-	} else {
-		copy(ob.SellOrders[i+1:], ob.SellOrders[i:])
-		ob.SellOrders[i] = order
+	if neighbour == n-1 {
+		appendToBook = true
 	}
+	if appendToBook {
+		ob.SellOrders = append(ob.SellOrders, order)
+		return
+	}
+
+	ob.SellOrders = append(ob.SellOrders, &Order{})
+	copy(ob.SellOrders[neighbour+1:], ob.SellOrders[neighbour:])
+	ob.SellOrders[neighbour] = order
 }
 
 func (ob *OrderBook) RemoveBuy(index int) {
+	if len(ob.BuyOrders) == 1 {
+		ob.BuyOrders = []*Order{}
+		return
+	}
+	if index > len(ob.BuyOrders)-1 {
+		return
+	}
+	if index == len(ob.BuyOrders)-1 {
+		ob.BuyOrders = append(ob.BuyOrders[:len(ob.BuyOrders)-1])
+		return
+	}
+
 	ob.BuyOrders = append(ob.BuyOrders[:index], ob.BuyOrders[index+1:]...)
 }
 
 func (ob *OrderBook) RemoveSell(index int) {
+	if len(ob.SellOrders) == 1 {
+		ob.SellOrders = []*Order{}
+		return
+	}
+	if index > len(ob.SellOrders)-1 {
+		return
+	}
+	if index == len(ob.SellOrders)-1 {
+		ob.SellOrders = append(ob.SellOrders[:len(ob.SellOrders)-1])
+		return
+	}
 	ob.SellOrders = append(ob.SellOrders[:index], ob.SellOrders[index+1:]...)
 }
